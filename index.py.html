@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skin Prediction AI</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;800&amp;family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #fef6f0 0%, #fde8d4 50%, #f9d5b8 100%); color: #3a2418; }
+    .font-display { font-family: 'Fraunces', serif; }
+    #splash { position: fixed; inset: 0; z-index: 100; background: radial-gradient(circle at 30% 30%, #ffb88c 0%, #de6b4a 50%, #6b2d1f 100%); display: flex; align-items: center; justify-content: center; flex-direction: column; overflow: hidden; }
+    .splash-ring { width: 180px; height: 180px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; animation: spin 1.4s linear infinite; position: absolute; }
+    .splash-ring.r2 { width: 230px; height: 230px; border-top-color: transparent; border-right-color: #ffe4cc; animation-duration: 2s; animation-direction: reverse; }
+    .splash-core { width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff2e3, #ffb88c); box-shadow: 0 0 60px rgba(255,184,140,0.8), inset -10px -10px 30px rgba(139,69,19,0.2); animation: pulse 1.8s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    .splash-title { margin-top: 60px; font-family: 'Fraunces', serif; font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -0.02em; opacity: 0; animation: fadeUp 0.8s ease 0.4s forwards; }
+    .splash-sub { color: #ffe4cc; margin-top: 8px; opacity: 0; animation: fadeUp 0.8s ease 0.9s forwards; letter-spacing: 0.3em; text-transform: uppercase; font-size: 12px; }
+    @keyframes fadeUp { from { opacity:0; transform: translateY(14px);} to { opacity:1; transform:none;} }
+    .splash-dots { display:flex; gap: 8px; margin-top: 30px; opacity:0; animation: fadeUp .6s ease 1.2s forwards; }
+    .splash-dots span { width:8px; height:8px; border-radius:50%; background:#fff; animation: bounce 1s ease-in-out infinite; }
+    .splash-dots span:nth-child(2){ animation-delay:.15s;}
+    .splash-dots span:nth-child(3){ animation-delay:.3s;}
+    @keyframes bounce { 0%,100%{ transform: translateY(0); opacity:.5;} 50%{ transform: translateY(-8px); opacity:1;} }
+    #splash.hide { opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+    .particle { position:absolute; border-radius:50%; background: rgba(255,228,204,0.5); animation: float 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{ transform: translateY(0) translateX(0);} 50%{ transform: translateY(-30px) translateX(10px);} }
+    .card { background: rgba(255,255,255,0.7); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.6); border-radius: 22px; box-shadow: 0 10px 40px -12px rgba(107,45,31,0.15); }
+    .btn-primary { background: linear-gradient(135deg, #de6b4a, #b8441f); color:#fff; font-weight:600; border-radius: 14px; padding: 12px 22px; border: none; box-shadow: 0 6px 20px -6px rgba(184,68,31,0.5); transition: transform .15s, box-shadow .15s; cursor: pointer; }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 24px -6px rgba(184,68,31,0.6); }
+    .btn-primary:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+    .input { width:100%; background: rgba(255,255,255,0.8); border: 1.5px solid #f0d5bf; border-radius: 12px; padding: 11px 14px; font-size: 15px; transition: border-color .2s, box-shadow .2s; }
+    .input:focus { outline:none; border-color:#de6b4a; box-shadow: 0 0 0 3px rgba(222,107,74,0.15); }
+    .dropzone { border: 2px dashed #d9a484; border-radius: 20px; padding: 40px 20px; text-align:center; background: rgba(255,255,255,0.5); transition: all .2s; cursor:pointer; }
+    .dropzone:hover, .dropzone.drag { border-color:#de6b4a; background: rgba(255,228,204,0.6); }
+    .scan-overlay { position:absolute; inset:0; border-radius: 18px; overflow:hidden; pointer-events:none; }
+    .scan-line { position:absolute; left:0; right:0; height:3px; background: linear-gradient(90deg, transparent, #fff, transparent); box-shadow: 0 0 20px #de6b4a; animation: scan 2s linear infinite; }
+    @keyframes scan { 0%{ top:0;} 100%{ top:100%;} }
+    .severity-bar { height: 8px; border-radius: 4px; background:#f0d5bf; overflow:hidden; }
+    .severity-fill { height:100%; border-radius:4px; transition: width 1s ease; }
+    .tag { display:inline-flex; align-items:center; gap:6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight:500; }
+    .routine-item { display:flex; gap:12px; padding: 10px; border-radius: 12px; transition: background .2s; }
+    .routine-item:hover { background: rgba(255,255,255,0.6); }
+    .routine-icon { flex-shrink:0; width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+    .fade-in { animation: fadeUp .5s ease both; }
+    .view { display:none; }
+    .view.active { display:block; }
+    [data-lucide] { width: 18px; height: 18px; }
+    ::-webkit-scrollbar { width:8px; height:8px; }
+    ::-webkit-scrollbar-thumb { background:#d9a484; border-radius:4px; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="splash">
+   <div class="particle" style="width:14px;height:14px;top:20%;left:15%;"></div>
+   <div class="particle" style="width:10px;height:10px;top:70%;left:80%;animation-delay:1s;"></div>
+   <div class="particle" style="width:18px;height:18px;top:30%;left:85%;animation-delay:2s;"></div>
+   <div class="particle" style="width:8px;height:8px;top:80%;left:20%;animation-delay:.5s;"></div>
+   <div style="position:relative; display:flex; align-items:center; justify-content:center; width:240px; height:240px;">
+    <div class="splash-ring"></div>
+    <div class="splash-ring r2"></div>
+    <div class="splash-core"></div>
+   </div>
+   <div class="splash-title">
+    Skin Prediction AI
+   </div>
+   <div class="splash-sub">
+    Analyzing • Detecting • Caring
+   </div>
+   <div class="splash-dots">
+    <span></span><span></span><span></span>
+   </div>
+  </div>
+  <main class="h-full w-full overflow-auto" id="mainApp" style="display:none;">
+   <section class="view active" id="authView">
+    <div class="min-h-full w-full flex items-center justify-center p-6">
+     <div class="card p-8 w-full max-w-md fade-in">
+      <div class="flex items-center gap-3 mb-6">
+       <div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#de6b4a,#b8441f);display:flex;align-items:center;justify-content:center;color:#fff;"><i data-lucide="sparkles" style="width:22px;height:22px;"></i>
+       </div>
+       <div>
+        <h1 class="font-display text-2xl font-bold">Welcome</h1>
+        <p class="text-sm text-stone-600">Sign in to your account</p>
+       </div>
+      </div>
+      <form id="authForm" class="space-y-3">
+       <div><label for="username" class="text-sm font-medium text-stone-700 mb-1 block">Username</label> <input id="username" class="input" type="text" placeholder="e.g. jane_doe" required autocomplete="username">
+       </div>
+       <div><label for="password" class="text-sm font-medium text-stone-700 mb-1 block">Password</label> <input id="password" class="input" type="password" placeholder="At least 4 characters" required minlength="4" autocomplete="current-password">
+       </div><button type="submit" class="btn-primary w-full" id="authSubmit">Sign In</button>
+      </form>
+     </div>
+    </div>
+   </section>
+   <section class="view" id="appView">
+    <div class="w-full min-h-full flex flex-col lg:flex-row gap-6 p-6">
+     <aside class="card p-5 w-full lg:w-80 flex-shrink-0 h-fit">
+      <div class="flex items-center justify-between mb-4">
+       <div>
+        <h2 class="font-display font-bold text-lg">Daily Healthy Routine</h2>
+        <p class="text-xs text-stone-500">Glow from the inside out</p>
+       </div>
+       <div style="width:36px;height:36px;border-radius:10px;background:#ffe4cc;display:flex;align-items:center;justify-content:center;color:#b8441f;"><i data-lucide="heart-pulse"></i>
+       </div>
+      </div>
+      <div class="space-y-1" id="routineList"></div>
+      <div class="mt-5 p-4 rounded-xl" style="background:linear-gradient(135deg,#ffe4cc,#fbc89f);">
+       <div class="flex items-center gap-2 mb-1"><i data-lucide="lightbulb" style="color:#b8441f;"></i> <span class="font-semibold text-sm text-stone-800">Daily Tip</span>
+       </div>
+       <p class="text-xs text-stone-700 leading-relaxed" id="dailyTip">Always pat, never rub your skin dry to avoid irritation.</p>
+      </div>
+     </aside>
+     <div class="flex-1 space-y-6">
+      <div class="card p-5 flex items-center justify-between flex-wrap gap-3">
+       <div>
+        <h1 class="font-display font-bold text-2xl" id="appTitleEl">Skin Prediction AI</h1>
+        <p class="text-sm text-stone-600" id="appTaglineEl">Upload a photo of your skin concern for AI-powered guidance</p>
+       </div>
+       <div class="flex items-center gap-3">
+        <div class="text-right">
+         <div class="text-xs text-stone-500">
+          Signed in as
+         </div>
+         <div class="font-semibold text-sm" id="userLabel">
+          —
+         </div>
+        </div><button id="logoutBtn" class="p-2 rounded-lg hover:bg-orange-100 transition" title="Sign out"> <i data-lucide="log-out" style="color:#b8441f;"></i> </button>
+       </div>
+      </div>
+      <div class="flex items-start gap-2 p-3 rounded-xl" style="background:rgba(222,107,74,0.1); border:1px solid rgba(222,107,74,0.25);"><i data-lucide="info" style="color:#b8441f;flex-shrink:0;margin-top:2px;"></i>
+       <p class="text-xs text-stone-700 leading-relaxed"><strong>Demo Simulation:</strong> This prototype demonstrates the interface. Real CNN/ML skin analysis requires a backend server. Results shown are simulated for UI purposes only — always consult a dermatologist for real concerns.</p>
+      </div>
+      <div class="card p-6">
+       <h2 class="font-display font-bold text-xl mb-1">Upload Skin Image</h2>
+       <p class="text-sm text-stone-600 mb-4">Clear, well-lit photos give the best simulated results.</p><label for="fileInput" class="dropzone block" id="dropzone">
+        <div id="dropPrompt">
+         <div style="width:60px;height:60px;margin:0 auto;border-radius:16px;background:linear-gradient(135deg,#ffe4cc,#fbc89f);display:flex;align-items:center;justify-content:center;color:#b8441f;"><i data-lucide="upload-cloud" style="width:28px;height:28px;"></i>
+         </div>
+         <p class="mt-3 font-semibold text-stone-800">Click or drop an image here</p>
+         <p class="text-xs text-stone-500 mt-1">PNG, JPG up to 10MB</p>
+        </div>
+        <div id="previewWrap" style="display:none;position:relative;"><img id="previewImg" alt="Uploaded skin preview" style="max-width:100%;max-height:340px;border-radius:14px;margin:0 auto;display:block;">
+         <div class="scan-overlay" id="scanOverlay" style="display:none;">
+          <div class="scan-line"></div>
+         </div>
+        </div><input id="fileInput" type="file" accept="image/*" class="hidden"> </label>
+       <div class="flex gap-3 mt-4 flex-wrap"><button type="button" class="btn-primary flex items-center gap-2" id="analyzeBtn" disabled> <i data-lucide="scan-search"></i> <span id="analyzeLabel">Analyze Skin</span> </button> <button type="button" class="px-4 py-3 rounded-xl border border-stone-300 hover:bg-white/60 transition text-sm font-medium flex items-center gap-2" id="resetBtn" style="display:none;"> <i data-lucide="rotate-ccw"></i> New Image </button>
+       </div>
+      </div>
+      <div id="resultsSection" style="display:none;" class="space-y-6 fade-in">
+       <div class="card p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+         <div>
+          <div class="tag mb-2" id="resultTag"></div>
+          <h2 class="font-display font-bold text-2xl" id="conditionName"></h2>
+          <p class="text-sm text-stone-600 mt-1" id="conditionDesc"></p>
+         </div>
+         <div class="text-right">
+          <div class="text-xs text-stone-500 uppercase tracking-wider">
+           Confidence
+          </div>
+          <div class="font-display font-bold text-3xl" id="confidenceNum">
+           —
+          </div>
+         </div>
+        </div>
+        <div>
+         <div class="flex justify-between text-xs text-stone-600 mb-1"><span>Severity level</span> <span id="severityLabel">—</span>
+         </div>
+         <div class="severity-bar">
+          <div class="severity-fill" id="severityFill" style="width:0%;"></div>
+         </div>
+        </div>
+       </div>
+       <div class="grid md:grid-cols-2 gap-6">
+        <div class="card p-6">
+         <div class="flex items-center gap-2 mb-3">
+          <div style="width:34px;height:34px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;color:#15803d;"><i data-lucide="leaf"></i>
+          </div>
+          <h3 class="font-display font-bold text-lg">Skincare Routine</h3>
+         </div>
+         <ul class="space-y-2" id="skincareList"></ul>
+        </div>
+        <div class="card p-6">
+         <div class="flex items-center gap-2 mb-3">
+          <div id="medIcon" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;"><i data-lucide="pill"></i>
+          </div>
+          <h3 class="font-display font-bold text-lg" id="medTitle">Suggested Ointments</h3>
+         </div>
+         <p class="text-xs text-stone-600 mb-3" id="medIntro"></p>
+         <ul class="space-y-2" id="medList"></ul>
+         <p class="text-xs text-stone-500 mt-4 italic">⚠️ Always consult a licensed dermatologist before using any medication.</p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+  </main>
+  <script>
+    const routines = [
+      { icon: 'sun', color:'#fef3c7', text:'#b45309', title:'6:30 AM — Hydrate', desc:'Drink 2 glasses of warm water to flush toxins.' },
+      { icon: 'droplets', color:'#dbeafe', text:'#1d4ed8', title:'7:00 AM — Cleanse', desc:'Gentle cleanser + SPF 30+ before heading out.' },
+      { icon: 'apple', color:'#dcfce7', text:'#15803d', title:'8:00 AM — Eat the rainbow', desc:'Vitamin C, zinc and omega-3 rich breakfast.' },
+      { icon: 'footprints', color:'#fce7f3', text:'#be185d', title:'Midday — Move', desc:'30 min of walking or yoga for circulation.' },
+      { icon: 'salad', color:'#ecfccb', text:'#4d7c0f', title:'1:00 PM — Balanced lunch', desc:'Greens, lean protein and healthy fats.' },
+      { icon: 'moon', color:'#e0e7ff', text:'#4338ca', title:'10:00 PM — Night care', desc:'Double cleanse, moisturize, 7–8 hrs sleep.' },
+    ];
+
+    const tips = [
+      'Always pat, never rub your skin dry to avoid irritation.',
+      'Change your pillowcase twice a week to prevent breakouts.',
+      'SPF is non-negotiable — even on cloudy days.',
+      'Don\'t forget your neck and hands in skincare.',
+      'Manage stress: cortisol triggers acne and dullness.',
+    ];
+
+    const conditions = [
+      { name: 'Mild Acne', severity: 30, level:'Low', danger:false, desc: 'Small inflamed bumps and blackheads, commonly caused by clogged pores.', skincare: ['Cleanse twice daily with a gentle salicylic acid face wash', 'Apply non-comedogenic moisturizer morning & night', 'Use SPF 30+ daily — sun worsens scarring', 'Avoid touching your face and change pillowcases often'], meds: ['Benzoyl peroxide 2.5% gel (OTC)', 'Salicylic acid 2% spot treatment', 'Niacinamide serum for inflammation'], medIntro: 'Over-the-counter topicals are usually effective for mild cases.' },
+      { name: 'Dry / Dehydrated Skin', severity: 25, level:'Low', danger:false, desc: 'Skin appears tight, flaky, with visible fine lines due to lack of moisture.', skincare: ['Switch to a creamy, non-foaming cleanser', 'Apply hyaluronic acid serum on damp skin', 'Layer a rich ceramide moisturizer', 'Use a humidifier at night and drink more water'], meds: ['Ceramide-based moisturizers (CeraVe, Eucerin)', 'Petrolatum-based occlusive balm', 'Vitamin E oil for overnight repair'], medIntro: 'Focus on barrier-repair products rather than medication.' },
+      { name: 'Eczema (Atopic Dermatitis)', severity: 55, level:'Moderate', danger:false, desc: 'Red, itchy patches often on arms, legs or face. Can flare with stress or allergens.', skincare: ['Use fragrance-free, hypoallergenic cleansers only', 'Moisturize within 3 minutes of bathing', 'Identify and avoid personal triggers (wool, detergents)', 'Take lukewarm — not hot — showers'], meds: ['Hydrocortisone 1% cream (OTC, short-term)', 'Colloidal oatmeal cream (Aveeno Eczema)', 'Antihistamines for itch relief'], medIntro: 'Topical treatments help flares; see a doctor for prescription steroids if persistent.' },
+      { name: 'Rosacea', severity: 50, level:'Moderate', danger:false, desc: 'Persistent facial redness, visible blood vessels, sometimes small bumps.', skincare: ['Use extremely gentle, pH-balanced cleansers', 'Avoid alcohol-based toners and physical scrubs', 'Always wear mineral SPF (zinc oxide)', 'Limit triggers: spicy food, alcohol, extreme temps'], meds: ['Azelaic acid 15% gel', 'Metronidazole cream (prescription)', 'Green-tinted color correctors for redness'], medIntro: 'Rosacea usually needs prescription topicals — consult a dermatologist.' },
+      { name: 'Suspicious Mole / Possible Melanoma', severity: 90, level:'High', danger:true, desc: 'Asymmetrical pigmented lesion with irregular borders. Requires urgent professional evaluation.', skincare: ['Do NOT pick, scratch or treat at home', 'Keep the area covered from UV exposure', 'Photograph it to track changes', 'Avoid tanning beds and prolonged sun'], meds: ['URGENT: Book a dermatologist within 1–2 weeks', 'Broad-spectrum SPF 50+ daily', 'Do not apply any medicated creams without diagnosis'], medIntro: '🚨 This pattern can indicate skin cancer. Seek medical evaluation immediately.' },
+      { name: 'Fungal Infection (Ringworm)', severity: 65, level:'Moderate-High', danger:true, desc: 'Circular, scaly, itchy patches. Highly contagious — requires antifungal treatment.', skincare: ['Keep the area clean and completely dry', 'Do not share towels, clothing or bedding', 'Wash affected clothes in hot water daily', 'Wear loose, breathable cotton fabrics'], meds: ['Clotrimazole 1% cream (OTC, 2–4 weeks)', 'Terbinafine 1% cream (OTC)', 'Oral antifungals — see a doctor if widespread'], medIntro: '⚠️ Antifungal treatment is required. See a doctor if it spreads or doesn\'t clear in 2 weeks.' },
+    ];
+
+    let currentUser = null;
+    const defaultConfig = { app_title: 'Skin Prediction AI', app_tagline: 'Upload a photo of your skin concern for AI-powered guidance' };
+
+    function renderRoutine() {
+      const list = document.getElementById('routineList');
+      list.innerHTML = routines.map(r => `<div class="routine-item"><div class="routine-icon" style="background:${r.color};color:${r.text};"><i data-lucide="${r.icon}"></i></div><div class="flex-1 min-w-0"><div class="font-semibold text-sm text-stone-800">${r.title}</div><div class="text-xs text-stone-600 leading-snug">${r.desc}</div></div></div>`).join('');
+      document.getElementById('dailyTip').textContent = tips[Math.floor(Math.random()*tips.length)];
+      lucide.createIcons();
+    }
+
+    document.getElementById('authForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+      if (!u || p.length < 4) { alert('Username required and password ≥ 4 chars.'); return; }
+      currentUser = u;
+      document.getElementById('authView').classList.remove('active');
+      document.getElementById('appView').classList.add('active');
+      document.getElementById('userLabel').textContent = currentUser;
+      document.getElementById('username').value='';
+      document.getElementById('password').value='';
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      currentUser = null;
+      document.getElementById('appView').classList.remove('active');
+      document.getElementById('authView').classList.add('active');
+      resetAnalysis();
+    });
+
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const previewImg = document.getElementById('previewImg');
+    const previewWrap = document.getElementById('previewWrap');
+    const dropPrompt = document.getElementById('dropPrompt');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    ['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+    dropzone.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        previewWrap.style.display = 'block';
+        dropPrompt.style.display = 'none';
+        analyzeBtn.disabled = false;
+        resetBtn.style.display = 'inline-flex';
+        document.getElementById('resultsSection').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    analyzeBtn.addEventListener('click', () => {
+      analyzeBtn.disabled = true;
+      document.getElementById('analyzeLabel').textContent = 'Analyzing...';
+      document.getElementById('scanOverlay').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('scanOverlay').style.display = 'none';
+        document.getElementById('analyzeLabel').textContent = 'Analyze Skin';
+        analyzeBtn.disabled = false;
+        showResult(conditions[Math.floor(Math.random()*conditions.length)]);
+      }, 2400);
+    });
+
+    resetBtn.addEventListener('click', resetAnalysis);
+
+    function resetAnalysis() {
+      fileInput.value='';
+      previewWrap.style.display='none';
+      dropPrompt.style.display='block';
+      analyzeBtn.disabled = true;
+      resetBtn.style.display='none';
+      document.getElementById('resultsSection').style.display='none';
+    }
+
+    function showResult(c) {
+      const confidence = Math.floor(78 + Math.random()*18);
+      document.getElementById('conditionName').textContent = c.name;
+      document.getElementById('conditionDesc').textContent = c.desc;
+      document.getElementById('confidenceNum').textContent = confidence + '%';
+      document.getElementById('severityLabel').textContent = c.level + ' (' + c.severity + '%)';
+      const fill = document.getElementById('severityFill');
+      fill.style.width = '0%';
+      let color = '#4ade80';
+      if (c.severity > 40) color = '#fb923c';
+      if (c.severity > 70) color = '#ef4444';
+      fill.style.background = color;
+      setTimeout(() => fill.style.width = c.severity + '%', 50);
+      const tag = document.getElementById('resultTag');
+      if (c.danger) {
+        tag.innerHTML = '<i data-lucide="alert-triangle"></i> Needs medical attention';
+        tag.style.background = '#fee2e2';
+        tag.style.color = '#b91c1c';
+      } else {
+        tag.innerHTML = '<i data-lucide="check-circle-2"></i> Manageable at home';
+        tag.style.background = '#dcfce7';
+        tag.style.color = '#15803d';
+      }
+      document.getElementById('skincareList').innerHTML = c.skincare.map(s => `<li class="flex gap-2 text-sm text-stone-700"><span style="color:#15803d;flex-shrink:0;margin-top:2px;"><i data-lucide="check" style="width:16px;height:16px;"></i></span>${s}</li>`).join('');
+      const medTitle = document.getElementById('medTitle');
+      const medIcon = document.getElementById('medIcon');
+      if (c.danger) {
+        medTitle.textContent = '⚠️ Medical Action Needed';
+        medIcon.style.background = '#fee2e2';
+        medIcon.style.color = '#b91c1c';
+      } else {
+        medTitle.textContent = 'Suggested Ointments';
+        medIcon.style.background = '#ffe4cc';
+        medIcon.style.color = '#b8441f';
+      }
+      document.getElementById('medIntro').textContent = c.medIntro;
+      document.getElementById('medList').innerHTML = c.meds.map(m => `<li class="flex gap-2 text-sm text-stone-700"><span style="color:${c.danger?'#b91c1c':'#b8441f'};flex-shrink:0;margin-top:2px;"><i data-lucide="${c.danger?'alert-circle':'pill'}" style="width:16px;height:16px;"></i></span>${m}</li>`).join('');
+      document.getElementById('resultsSection').style.display='block';
+      lucide.createIcons();
+      document.getElementById('resultsSection').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    window.addEventListener('load', () => {
+      lucide.createIcons();
+      renderRoutine();
+      setTimeout(() => {
+        const s = document.getElementById('splash');
+        s.classList.add('hide');
+        document.getElementById('mainApp').style.display = 'block';
+        setTimeout(() => s.remove(), 600);
+      }, 5000);
+    });
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (config) => {
+          document.getElementById('appTitleEl').textContent = config.app_title || defaultConfig.app_title;
+          document.getElementById('appTaglineEl').textContent = config.app_tagline || defaultConfig.app_tagline;
+        },
+        mapToCapabilities: (config) => ({ recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined }),
+        mapToEditPanelValues: (config) => new Map([['app_title', config.app_title || defaultConfig.app_title], ['app_tagline', config.app_tagline || defaultConfig.app_tagline]]),
+      });
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f0d04e2a241a7e4',t:'MTc3Njk0ODg5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
