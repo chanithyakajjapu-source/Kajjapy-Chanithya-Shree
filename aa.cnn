@@ -1,0 +1,99 @@
+# Install required libraries first:
+# pip install tensorflow flask pillow numpy
+
+import numpy as np
+import os
+from flask import Flask, request, jsonify
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from PIL import Image
+
+# =========================
+# 1. TRAIN CNN MODEL
+# =========================
+
+# Dataset folder structure:
+# dataset/
+#   train/
+#       acne/
+#       eczema/
+#       normal/
+#       fungal/
+
+IMG_SIZE = 224
+BATCH_SIZE = 16
+
+train_path = "dataset/train"
+
+datagen = ImageDataGenerator(rescale=1./255)
+
+train_data = datagen.flow_from_directory(
+    train_path,
+    target_size=(IMG_SIZE, IMG_SIZE),
+    batch_size=BATCH_SIZE,
+    class_mode='categorical'
+)
+
+model = Sequential([
+    Conv2D(32, (3,3), activation='relu', input_shape=(224,224,3)),
+    MaxPooling2D(),
+
+    Conv2D(64, (3,3), activation='relu'),
+    MaxPooling2D(),
+
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dense(4, activation='softmax')  # 4 classes
+])
+
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+print("Training model...")
+model.fit(train_data, epochs=5)
+
+model.save("skin_model.h5")
+print("Model saved!")
+
+# =========================
+# 2. LOAD MODEL FOR API
+# =========================
+
+model = load_model("skin_model.h5")
+
+classes = ["Acne", "Eczema", "Normal", "Fungal"]
+
+def preprocess(img):
+    img = img.resize((224, 224))
+    img = np.array(img) / 255.0
+    img = img.reshape(1, 224, 224, 3)
+    return img
+
+# =========================
+# 3. FLASK API
+# =========================
+
+app = Flask(__name__)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    file = request.files['file']
+    img = Image.open(file).convert('RGB')
+
+    img = preprocess(img)
+
+    prediction = model.predict(img)
+    result = classes[np.argmax(prediction)]
+
+    return jsonify({"prediction": result})
+
+# =========================
+# 4. RUN SERVER
+# =========================
+
+if __name__ == "__main__":
+    app.run(debug=True)
